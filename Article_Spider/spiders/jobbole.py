@@ -3,7 +3,8 @@ import scrapy
 import re
 from scrapy.http import Request
 from urllib import parse
-
+from items import JobboleArticleItem
+from utils.commen import get_md5
 
 class JobboleSpider(scrapy.Spider):
     name = 'jobbole'
@@ -33,13 +34,14 @@ class JobboleSpider(scrapy.Spider):
 
     def parse_detail(self, response):
         # 提取文章的具体字段
+        article_item = JobboleArticleItem()
 
-        #图片
-        image=response.meta.get("front_img","")
+        # 图片
+        image = response.meta.get("front_img", "")
 
         # 标题
         title = response.xpath("//div[@class='entry-header']/h1/text()")
-        title_result = title.extract()
+        title_result = title.extract_first("")
         # 创建时间
         create_date = response.xpath("//p[@class='entry-meta-hide-on-mobile']/text()")
         create_date_result = create_date.extract()[0].replace("·", "").strip()
@@ -68,4 +70,19 @@ class JobboleSpider(scrapy.Spider):
         content_key = [content_key for content_key in content_data if not content_key.strip().endswith("评论")]
         content_keys = ','.join(content_key)
 
-    pass
+
+        article_item['url'] = response.url
+        article_item['url_object_id']=get_md5(response.url)
+        article_item['front_img_url'] = [image]
+
+        article_item['title'] = title_result
+        article_item['create_time']=create_date_result
+        article_item['praise_num']=praise_num_result
+        article_item['fav_num']=fav_num
+        article_item['comment_num']=comment_num
+        article_item['conent']=content
+        article_item['tags']=content_keys
+
+        yield article_item
+
+
